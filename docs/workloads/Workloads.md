@@ -53,3 +53,7 @@ workloads:
         iodepth: [ 1, 4, 8 ]
 
 ```
+
+## Benchmark-specific guides
+
+- [Elbencho S3](./elbencho-s3.md)

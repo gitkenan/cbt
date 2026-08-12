@@ -9,106 +9,53 @@ YAML, executing the run, and verifying results. A ready-to-edit example YAML liv
 - `elbencho` installed on all client nodes
 - A running Ceph RGW endpoint and an S3 user with read/write access
 - An existing S3 bucket (or set `mkdirs: True` on the first write workload to create one)
-- CBT's standard pdsh SSH access from the head node to all client nodes
-
-## Installing elbencho
-
-On each client node, install from the GitHub releases page. For RHEL/CentOS/Rocky:
-
-```bash
-# Check the latest release at https://github.com/breuner/elbencho/releases
-ELBENCHO_VERSION=3.1-9
-curl -LO https://github.com/breuner/elbencho/releases/download/v${ELBENCHO_VERSION}/elbencho-${ELBENCHO_VERSION}-1.x86_64.rpm
-rpm -ivh elbencho-${ELBENCHO_VERSION}-1.x86_64.rpm
-```
-
-For Debian/Ubuntu:
-
-```bash
-ELBENCHO_VERSION=3.1-9
-curl -LO https://github.com/breuner/elbencho/releases/download/v${ELBENCHO_VERSION}/elbencho-${ELBENCHO_VERSION}-1.amd64.deb
-dpkg -i elbencho-${ELBENCHO_VERSION}-1.amd64.deb
-```
-
-Verify the install and confirm S3 support is included:
-
-```bash
-elbencho --version
-# Look for "s3" in the "Included optional build features" line
-```
-
-To install on all CBT client nodes at once via pdsh:
-
-```bash
-pdsh -w <client1>,<client2> 'rpm -ivh /path/to/elbencho.rpm'
-```
-
-## Finding your RGW endpoint and credentials
-
-Run these on your Ceph admin/mon node.
-
-**Which port is RGW actually listening on:**
-
-```bash
-ss -tlnp | grep radosgw
-```
-
-This is the port to use in the `url=` field of `auth.config`. Common values are `8000` or `8080`.
-Note: `ceph config get client.rgw rgw_frontends` may show a configured port that differs from
-what is actually bound — always confirm with `ss`.
-
-**Which RGW users exist:**
-
-```bash
-radosgw-admin user list
-```
-
-**Get the access key and secret for a user:**
-
-```bash
-radosgw-admin user info --uid=<username>
-```
-
-The output contains a `keys` array. Use the `access_key` and `secret_key` from the entry
-whose `user` matches `<username>` (not a subuser). Example output:
-
-```json
-"keys": [
-    {
-        "user": "cbt",
-        "access_key": "<your-access-key>",
-        "secret_key": "<your-secret-key",
-        "active": true
-    }
-]
-```
-
-**Create a new RGW user if needed:**
-
-```bash
-radosgw-admin user create --uid=cbt --display-name=cbt --access-key=<key> --secret=<secret>
-```
-
-**Verify the endpoint responds:**
-
-```bash
-curl -v http://<rgw-host>:<port>/
-# Expect HTTP 200 with a ListAllMyBucketsResult XML body
-```
 
 ## Test plan YAML
 
-See the [`example/wip-elbencho/elbencho_ex.yaml`](../../example/wip-elbencho/elbencho_ex.yaml) for
-an example as to what a working YAML would look like.
+```yaml
+cluster:
+  user: 'cbt'
+  head: 'mon1'
+  clients: ['client1']
+  osds: ['osd1', 'osd2', 'osd3']
+  rgws: ['osd1', 'osd2', 'osd3']
+  osds_per_node: 1
+  conf_file: '/etc/ceph/ceph.conf'
+  iterations: 1
+  use_existing: True
+  clusterid: 'ceph'
+  tmp_dir: '/tmp/cbt'
+
+benchmarks:
+  elbencho:
+    cmd_path: '/usr/local/bin/elbencho'
+    auth:
+      config: access_key=<your-access-key>;secret_key=<your-secret-key>;url=http://192.168.110.51:8000;retry=9
+
+    workloads:
+      write_small:
+        s3_bucket: 'cbt-benchmark'
+        mode: 'write'
+        mkdirs: True
+        threads: [1, 4]
+        iodepth: [1, 4]
+        blocksize: ['4k', '128k']
+        size: '1g'
+        num_objects: 100
+        duration: 30
+
+      read_small:
+        s3_bucket: 'cbt-benchmark'
+        mode: 'read'
+        threads: [1, 4]
+        iodepth: [1, 4]
+        blocksize: ['4k', '128k']
+        size: '1g'
+        num_objects: 100
+        duration: 30
+```
 
 Replace `<your-access-key>`, `<your-secret-key>`, and the RGW URL with your cluster's values.
-
-> **`mkdirs: True`** tells elbencho to create the S3 bucket before writing. Set it on the
-> first write workload only. If the bucket already exists and your RGW is slow to respond to
-> bucket-create requests, omit `mkdirs` (or set it `False`) and pre-create the bucket manually:
-> ```bash
-> radosgw-admin bucket create --bucket=cbt-benchmark --uid=cbt
-> ```
 
 ## Running
 
@@ -170,5 +117,4 @@ WRITE       Elapsed time     :     30.140s     30.196s
 ```
 
 > **Note**: `result.csv` is elbencho's native CSV result format. Parsing and plotting these
-> files into CBT's standard report pipeline is the work of Stories 4 and 5. To verify that 
-> the data is there from the CLI, it suffices to use `cat <file-name>`.
+> files into CBT's standard report pipeline is the work of Stories 4 and 5.
