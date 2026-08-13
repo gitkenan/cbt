@@ -1,0 +1,40 @@
+cluster:
+  user: 'cbt'
+  head: 'mon1'
+  clients: ['client1']
+  osds: ['osd1', 'osd2', 'osd3']
+  rgws: ['osd1', 'osd2', 'osd3']
+  osds_per_node: 1
+  conf_file: '/etc/ceph/ceph.conf'
+  iterations: 1
+  use_existing: True
+  clusterid: 'ceph'
+  tmp_dir: '/tmp/cbt'
+
+benchmarks:
+  elbencho:
+    cmd_path: '/usr/local/bin/elbencho'
+    auth:
+      config: access_key=<your-access-key>;secret_key=<your-secret-key>;url=http://192.168.110.51:8000;retry=9
+
+    workloads:
+      write_small:
+        s3_bucket: 'cbt-benchmark'
+        mode: 'write'
+        mkdirs: True
+        threads: [1, 4]
+        iodepth: [1, 4]
+        blocksize: ['4k', '128k']
+        size: '1g'
+        num_objects: 100
+        duration: 30
+
+      read_small:
+        s3_bucket: 'cbt-benchmark'
+        mode: 'read'
+        threads: [1, 4]
+        iodepth: [1, 4]
+        blocksize: ['4k', '128k']
+        size: '1g'
+        num_objects: 100
+        duration: 30

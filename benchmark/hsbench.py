@@ -45,6 +45,12 @@ class Hsbench(Benchmark):
     def initialize(self):
         super(Hsbench, self).initialize()
 
+        # Fail-fast: verify the hsbench binary exists and is executable on all
+        # client nodes before touching the cluster or starting monitoring.
+        # Raises if the binary is missing or not executable on any node.
+        logger.info("Verifying hsbench binary is executable on all client nodes: %s", self.cmd_path)
+        common.pdsh_check(settings.getnodes('clients'), f"test -x {self.cmd_path}")
+
         # Clean and Create the run directory
         common.clean_remote_dir(self.run_dir)
         common.make_remote_dir(self.run_dir)

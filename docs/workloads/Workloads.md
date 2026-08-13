@@ -7,7 +7,16 @@ of jobs (or threads, or processes), such that the increase number of these cause
 increase in the I/O. Specifiying workloads in this way permits to generate *response latency curves*
 from the results.
 
-The workload feature is currently supported for `librbdfio` only.
+The workload feature is currently supported for `librbdfio` and `elbencho`.
+
+## How it works
+
+Benchmarks that manage their own iteration declare a `workload_configs` classmethod.
+`benchmarkfactory` checks for this method at runtime and, when present, calls it instead of
+`expand_configs()` — the Cartesian expansion of top-level list-valued parameters then becomes
+the responsibility of the class itself.  This keeps the factory generic: adding workload support
+to a new benchmark only requires implementing `workload_configs` on that class — no changes to
+`benchmarkfactory.py` are needed.
 
 ![workloads](./workloads.png)
 
