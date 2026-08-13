@@ -2,32 +2,62 @@ import copy
 import itertools
 
 import settings
-from benchmark.radosbench import Radosbench
+from benchmark.cephtestrados import CephTestRados
+from benchmark.cosbench import Cosbench
+from benchmark.elbencho import Elbencho
 from benchmark.fio import Fio
+from benchmark.getput import Getput
 from benchmark.hsbench import Hsbench
-from benchmark.rbdfio import RbdFio
-from benchmark.rawfio import RawFio
 from benchmark.kvmrbdfio import KvmRbdFio
 from benchmark.librbdfio import LibrbdFio
 from benchmark.nullbench import Nullbench
-from benchmark.cosbench import Cosbench
-from benchmark.cephtestrados import CephTestRados
-from benchmark.getput import Getput
+from benchmark.radosbench import Radosbench
+from benchmark.rawfio import RawFio
+from benchmark.rbdfio import RbdFio
+
+BENCHMARK_CLASSES = {
+    'nullbench': Nullbench,
+    'radosbench': Radosbench,
+    'fio': Fio,
+    'hsbench': Hsbench,
+    'rbdfio': RbdFio,
+    'kvmrbdfio': KvmRbdFio,
+    'rawfio': RawFio,
+    'librbdfio': LibrbdFio,
+    'cosbench': Cosbench,
+    'cephtestrados': CephTestRados,
+    'getput': Getput,
+    'elbencho': Elbencho,
+}
+
 
 def get_all(archive, cluster, iteration):
     for benchmark, config in sorted(settings.benchmarks.items()):
         default = {"benchmark": benchmark,
                    "iteration": iteration}
-        for current in all_configs(config):
+        bclass = BENCHMARK_CLASSES.get(benchmark)
+        # If the benchmark uses workloads, we use its internal method
+        # to generate the configurations rather than going down the usual
+        # expand_configs() method which is deprecated (we want to move towards
+        # workloads)
+        if bclass is not None and hasattr(bclass, 'workload_configs'):
+            configs = bclass.workload_configs(config)
+        else:
+            configs = expand_configs(config)
+
+        for current in configs:
             current.update(default)
             yield get_object(archive, cluster, benchmark, current)
 
 
-def all_configs(config):
+def expand_configs(config):
     """
     return all parameter combinations for config
     config: dict - list of params
     iterate over all top-level lists in config
+
+    Deprecated: we're moving towards workloads,
+    which is a different code path -- see get_all()
     """
     cycle_over_lists = []
     cycle_over_names = []
@@ -50,19 +80,7 @@ def all_configs(config):
         yield current
 
 def get_object(archive, cluster, benchmark, bconfig):
-    benchmarks = {
-        'nullbench': Nullbench,
-        'radosbench': Radosbench,
-        'fio': Fio,
-        'hsbench': Hsbench,
-        'rbdfio': RbdFio,
-        'kvmrbdfio': KvmRbdFio,
-        'rawfio': RawFio,
-        'librbdfio': LibrbdFio,
-        'cosbench': Cosbench,
-        'cephtestrados': CephTestRados,
-        'getput': Getput}
     try:
-        return benchmarks[benchmark](archive, cluster, bconfig)
+        return BENCHMARK_CLASSES[benchmark](archive, cluster, bconfig)
     except KeyError:
         return None

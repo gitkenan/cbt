@@ -167,6 +167,11 @@ def pdsh(nodes, command, continue_if_error=True):
         return CheckedPopen(args, continue_if_error=continue_if_error, env_vars=env)
 
 
+def pdsh_check(nodes, command):
+    """Run command on all nodes via pdsh; raise if any node reports a non-zero exit."""
+    pdsh(nodes, command, continue_if_error=False).communicate()
+
+
 def pdcp(nodes, flags, localfile, remotefile):
     local_node = get_localnode(nodes)
     if local_node:

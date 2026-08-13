@@ -10,7 +10,7 @@ class TestBenchmarkFactory(unittest.TestCase):
     def test_permutations_1(self):
         """ Basic sanity permutations """
         config = {"x": 12, "y": True, "z": {1: 2}, "t": [1, 2, 4]}
-        cfgs = list(benchmarkfactory.all_configs(config))
+        cfgs = list(benchmarkfactory.expand_configs(config))
         self.assertEqual(len(cfgs), 3)
         self.assertEqual([dict] * 3, list(map(type, cfgs)))
         tvals = []
@@ -25,7 +25,7 @@ class TestBenchmarkFactory(unittest.TestCase):
     def test_permutations_2(self):
         """ Basic sanity permutations """
         config = {"x": 12, "y": True, "z": {1: 2}, "t": [1, 2, 4], "j": [7, True, 'gg']}
-        cfgs = list(benchmarkfactory.all_configs(config))
+        cfgs = list(benchmarkfactory.expand_configs(config))
         self.assertEqual(len(cfgs), 9)
         self.assertEqual([dict] * 9, list(map(type, cfgs)))
 
@@ -43,7 +43,7 @@ class TestBenchmarkFactory(unittest.TestCase):
     def test_permutations_0(self):
         """ Basic sanity permutations """
         config = {"x": 12, "y": True, "z": {1: 2}}
-        cfgs = list(benchmarkfactory.all_configs(config))
+        cfgs = list(benchmarkfactory.expand_configs(config))
         self.assertEqual(len(cfgs), 1)
         self.assertEqual(cfgs[0], config)
 
