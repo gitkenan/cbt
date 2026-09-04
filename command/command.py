@@ -7,8 +7,9 @@ cli command using whatever method the Benchmark chooses
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from logging import Logger, getLogger
-from typing import Optional
+from typing import Any, Optional
 
 from cli_options import CliOptions
 
@@ -21,13 +22,16 @@ class Command(ABC):
     system
     """
 
-    def __init__(self, options: dict[str, str]) -> None:
+    # ``options`` is the raw config from the YAML/test plan: heterogeneous
+    # values (ints, bools, strings). _parse_options() is the boundary that
+    # normalizes it into the str|None CliOptions store.
+    def __init__(self, options: Mapping[str, Any]) -> None:
         self._executable: Optional[str] = None
         self._output_directory: str = ""
         self._options: CliOptions = self._parse_options(options)
 
     @abstractmethod
-    def _parse_options(self, options: dict[str, str]) -> CliOptions:
+    def _parse_options(self, options: Mapping[str, Any]) -> CliOptions:
         """
         Take the options passed in from the configuration yaml file and
         convert them to a list of key/value pairs that match the parameters
@@ -42,7 +46,7 @@ class Command(ABC):
         """
 
     @abstractmethod
-    def _parse_global_options(self, options: dict[str, str]) -> CliOptions:
+    def _parse_global_options(self, options: Mapping[str, Any]) -> CliOptions:
         """
         Parse the set of global options into the correct format for the command type
         """
@@ -89,7 +93,7 @@ class Command(ABC):
         """
         self._executable = executable_path
 
-    def set_global_options(self, global_options: dict[str, str]) -> None:
+    def set_global_options(self, global_options: Mapping[str, Any]) -> None:
         """
         Update the global options
         """

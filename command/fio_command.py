@@ -11,8 +11,9 @@ should be created that parses these options
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from logging import Logger, getLogger
-from typing import Optional
+from typing import Any, Optional
 
 from cli_options import CliOptions
 from command.command import Command
@@ -29,25 +30,25 @@ class FioCommand(Command, ABC):
     _REQUIRED_OPTIONS = {"invalidate": "0", "direct": "1"}
     _DIRECT_TRANSLATIONS: list[str] = ["numjobs", "iodepth"]
 
-    def __init__(self, options: dict[str, str], workload_output_directory: str) -> None:
+    def __init__(self, options: Mapping[str, Any], workload_output_directory: str) -> None:
         self._target_number: int = int(options["target_number"])
         self._total_iodepth: Optional[str] = options.get("total_iodepth", None)
         self._workload_output_directory: str = workload_output_directory
         super().__init__(options)
 
     @abstractmethod
-    def _parse_ioengine_specific_parameters(self, options: dict[str, str]) -> dict[str, str]:
+    def _parse_ioengine_specific_parameters(self, options: Mapping[str, Any]) -> dict[str, str]:
         """
         Get any options that are specific to the I/O engine being used
         for this fio run and add them to the CliOptons for this workload
         """
 
-    def _parse_global_options(self, options: dict[str, str]) -> CliOptions:
+    def _parse_global_options(self, options: Mapping[str, Any]) -> CliOptions:
         global_options: CliOptions = CliOptions(options)
 
         return global_options
 
-    def _parse_options(self, options: dict[str, str]) -> CliOptions:
+    def _parse_options(self, options: Mapping[str, Any]) -> CliOptions:
         fio_cli_options: CliOptions = CliOptions()
 
         fio_cli_options.update(self._parse_ioengine_specific_parameters(options))
